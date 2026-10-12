@@ -119,29 +119,36 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    """Build the features table and print a summary."""
-    # Parse arguments and stop early if the database is missing
-    args = parse_args()
-    if not args.db.exists():
-        raise SystemExit(f"{args.db} not found (run 'python -m src.ingest' first)")
-
+def run_features(db_path: Path, window_s: float) -> tuple[pd.DataFrame, int]:
+    """Build the features table and return it with the number of skipped windows."""
     # Read the packets and add the per-packet columns
-    conn = sqlite3.connect(args.db)
+    conn = sqlite3.connect(db_path)
     packets = read_packets(conn)
-    packets = add_packet_columns(packets, args.window)
+    packets = add_packet_columns(packets, window_s)
 
     # Build one row of features per address per window
-    features = build_features(packets, args.window)
+    features = build_features(packets, window_s)
 
     # Skip windows with too few packets to measure gaps and spread
     is_usable = features["packets"] >= MIN_PACKETS
     n_skipped = len(features) - is_usable.sum()
     features = features[is_usable]
 
-    # Write the table, close the database and print a summary
+    # Write the table and close the database
     write_features(conn, features)
     conn.close()
+    return features, n_skipped
+
+
+def main() -> None:
+    """Build the features from the command line and print a summary."""
+    # Parse arguments and stop early if the database is missing
+    args = parse_args()
+    if not args.db.exists():
+        raise SystemExit(f"{args.db} not found (run 'python -m src.ingest' first)")
+
+    # Build the features and print a summary
+    features, n_skipped = run_features(args.db, args.window)
     print(f"Addresses: {features['address'].nunique()}   Window: {args.window:g} s")
     print(f"Windows written: {len(features)}   skipped (under {MIN_PACKETS} packets): {n_skipped}")
     print(f"Wrote table 'features' to {args.db}")

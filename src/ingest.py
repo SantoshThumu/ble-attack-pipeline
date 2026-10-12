@@ -75,19 +75,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    """Load the CSV into the database and print what was stored."""
-    # Parse arguments and stop early if the CSV is missing
-    args = parse_args()
-    if not args.csv.exists():
-        raise SystemExit(f"{args.csv} not found (run 'python -m src.simulate' first)")
-
+def run_ingest(csv_path: Path, db_path: Path) -> tuple[int, int]:
+    """Load the CSV into the database and return how many packets and labels were stored."""
     # Read the packets
-    packets = read_packets(args.csv)
+    packets = read_packets(csv_path)
 
     # Open the database (the file is created if it does not already exist)
-    args.db.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(args.db)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
 
     # Rebuild the tables, load both of them, and save the changes
     create_tables(conn)
@@ -99,6 +94,18 @@ def main() -> None:
     n_packets = conn.execute("SELECT COUNT(*) FROM packets").fetchone()[0]
     n_labels = conn.execute("SELECT COUNT(*) FROM labels").fetchone()[0]
     conn.close()
+    return n_packets, n_labels
+
+
+def main() -> None:
+    """Load the CSV from the command line and print what was stored."""
+    # Parse arguments and stop early if the CSV is missing
+    args = parse_args()
+    if not args.csv.exists():
+        raise SystemExit(f"{args.csv} not found (run 'python -m src.simulate' first)")
+
+    # Load the packets and print a summary
+    n_packets, n_labels = run_ingest(args.csv, args.db)
     print(f"Loaded {n_packets} packets and {n_labels} labels into {args.db}")
 
 

@@ -366,36 +366,47 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def main() -> None:
-    """Run the simulation end to end and print a summary."""
-    # Parse arguments and create the seeded random generator
-    args = parse_args()
-    rng = np.random.default_rng(args.seed)
-    duration_s = args.minutes * 60
+def run_simulation(n_devices: int, minutes: float, attacks: list[str], seed: int,
+                   out_dir: Path) -> tuple[pd.DataFrame, list[dict], int]:
+    """Simulate one capture, write both files, and return the packets, attacks and sent count."""
+    # Create the seeded random generator
+    rng = np.random.default_rng(seed)
+    duration_s = minutes * 60
 
     # Build the devices
-    devices = make_devices(args.devices, rng)
+    devices = make_devices(n_devices, rng)
 
     # Simulate each device and concatenate the results
     per_device = [simulate_device(device, duration_s, rng) for device in devices]
     packets = pd.concat(per_device, ignore_index=True)
 
     # Inject the attacks and record where they happened
-    packets, ground_truth = inject_attacks(packets, devices, args.attacks, duration_s, rng)
+    packets, ground_truth = inject_attacks(packets, devices, attacks, duration_s, rng)
     n_sent = len(packets)
 
     # Drop missed packets
     packets = drop_packets(packets, rng)
 
-    # Write both files and print a summary
-    packets_path = write_packets(packets, args.out_dir)
-    truth_path = write_ground_truth(ground_truth, args.out_dir)
-    print(f"Devices: {len(devices)}   Duration: {duration_s:.0f} s")
+    # Write both files
+    write_packets(packets, out_dir)
+    write_ground_truth(ground_truth, out_dir)
+    return packets, ground_truth, n_sent
+
+
+def main() -> None:
+    """Run the simulation from the command line and print a summary."""
+    # Parse arguments and run the simulation
+    args = parse_args()
+    packets, ground_truth, n_sent = run_simulation(args.devices, args.minutes, args.attacks,
+                                                   args.seed, args.out_dir)
+
+    # Print a summary
+    print(f"Devices: {args.devices}   Duration: {args.minutes * 60:.0f} s")
     print(f"Packets sent: {n_sent}   captured: {len(packets)}")
     print(packets["label"].value_counts().to_string())
     for window in ground_truth:
         print(f"{window['type']:<7}{window['address']}  {window['start']:.1f}-{window['end']:.1f} s")
-    print(f"Wrote {packets_path} and {truth_path}")
+    print(f"Wrote {args.out_dir / 'packets.csv'} and {args.out_dir / 'ground_truth.json'}")
 
 
 if __name__ == "__main__":
