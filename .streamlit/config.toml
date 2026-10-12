@@ -1,0 +1,7 @@
+# Do not send usage statistics, so the dashboard makes no outside network calls
+[browser]
+gatherUsageStats = false
+
+# Always use the light theme, whatever the computer's own setting is
+[theme]
+base = "light"
