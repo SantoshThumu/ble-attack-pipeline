@@ -8,7 +8,6 @@ Run from the repo root:
 import json
 import sqlite3
 import sys
-import time
 from pathlib import Path
 
 import pandas as pd
@@ -19,20 +18,11 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.detect import MIN_PACKETS_TO_FLAG, SCORE_THRESHOLD, run_detection
-from src.features import MIN_PACKETS, run_features
-from src.ingest import run_ingest
-from src.simulate import run_simulation
+from src.demo_data import DATA_DIR, DB_PATH, DEMO_SEED, rebuild_data
+from src.detect import MIN_PACKETS_TO_FLAG, SCORE_THRESHOLD
+from src.features import MIN_PACKETS
 
-DATA_DIR = ROOT / "data"
-DB_PATH = DATA_DIR / "ble.db"
 ANSWER_KEY_PATH = DATA_DIR / "ground_truth.json"
-
-# Settings of the demo dataset (the same defaults as the command-line tools)
-DEMO_SEED = 42
-DEMO_DEVICES = 8
-DEMO_MINUTES = 10
-DEMO_WINDOW_S = 5
 
 # Plain-English names for the attacks that can be injected
 ATTACKS = {
@@ -102,18 +92,6 @@ def clock(seconds: float) -> str:
     """Format a time in seconds as minutes:seconds (575 becomes '9:35')."""
     minutes, seconds = divmod(int(seconds), 60)
     return f"{minutes}:{seconds:02d}"
-
-
-def rebuild_data(seed: int, attacks: list[str]) -> tuple[list[dict], float]:
-    """Run the whole pipeline on a fresh simulation and return its attacks and the seconds taken."""
-    started = time.perf_counter()
-
-    # Simulate new traffic, load it, build the features and score them (the same four stages as the CLI)
-    packets, injected, n_sent = run_simulation(DEMO_DEVICES, DEMO_MINUTES, attacks, seed, DATA_DIR)
-    run_ingest(DATA_DIR / "packets.csv", DB_PATH)
-    run_features(DB_PATH, DEMO_WINDOW_S)
-    run_detection(DB_PATH, DATA_DIR / "flags.csv")
-    return injected, time.perf_counter() - started
 
 
 def show_demo_controls() -> None:
