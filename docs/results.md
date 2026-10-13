@@ -8,16 +8,20 @@ Runs scored: 30
 
 | Method | Whole attacks caught | Windows fully inside | Windows partly inside | Recall | Precision | False alarms per run | False alarms per 10,000 packets |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| IsolationForest, top 3% | 90/90 (100%) | 457/459 (100%) | 118/180 (66%) | 575/639 (90%) | 575/893 (64%) | 10.6 | 7.6 |
+| Before: top 3% of each run | 90/90 (100%) | 457/459 (100%) | 118/180 (66%) | 575/639 (90%) | 575/893 (64%) | 10.6 | 7.6 |
+| After: score of 0.63+ and 4+ packets | 89/90 (99%) | 438/459 (95%) | 98/180 (54%) | 536/639 (84%) | 536/640 (84%) | 3.5 | 2.5 |
 | Rules baseline | 90/90 (100%) | 459/459 (100%) | 134/180 (74%) | 593/639 (93%) | 593/1168 (51%) | 19.2 | 13.7 |
 
 By attack type:
 
 | Method | Attack | Whole attacks caught | Windows fully inside | Windows partly inside | Recall |
 | --- | --- | --- | --- | --- | --- |
-| IsolationForest, top 3% | flood | 30/30 (100%) | 160/160 (100%) | 44/60 (73%) | 204/220 (93%) |
-| IsolationForest, top 3% | spoof | 30/30 (100%) | 151/152 (99%) | 45/60 (75%) | 196/212 (92%) |
-| IsolationForest, top 3% | timing | 30/30 (100%) | 146/147 (99%) | 29/60 (48%) | 175/207 (85%) |
+| Before: top 3% of each run | flood | 30/30 (100%) | 160/160 (100%) | 44/60 (73%) | 204/220 (93%) |
+| Before: top 3% of each run | spoof | 30/30 (100%) | 151/152 (99%) | 45/60 (75%) | 196/212 (92%) |
+| Before: top 3% of each run | timing | 30/30 (100%) | 146/147 (99%) | 29/60 (48%) | 175/207 (85%) |
+| After: score of 0.63+ and 4+ packets | flood | 30/30 (100%) | 160/160 (100%) | 32/60 (53%) | 192/220 (87%) |
+| After: score of 0.63+ and 4+ packets | spoof | 30/30 (100%) | 151/152 (99%) | 44/60 (73%) | 195/212 (92%) |
+| After: score of 0.63+ and 4+ packets | timing | 29/30 (97%) | 127/147 (86%) | 22/60 (37%) | 149/207 (72%) |
 | Rules baseline | flood | 30/30 (100%) | 160/160 (100%) | 48/60 (80%) | 208/220 (95%) |
 | Rules baseline | spoof | 30/30 (100%) | 152/152 (100%) | 44/60 (73%) | 196/212 (92%) |
 | Rules baseline | timing | 30/30 (100%) | 147/147 (100%) | 42/60 (70%) | 189/207 (91%) |
@@ -28,19 +32,36 @@ Runs scored: 30
 
 | Method | Whole attacks caught | Windows fully inside | Windows partly inside | Recall | Precision | False alarms per run | False alarms per 10,000 packets |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| IsolationForest, top 3% | 30/30 (100%) | 156/157 (99%) | 41/59 (69%) | 197/216 (91%) | 197/888 (22%) | 23.0 | 20.0 |
+| Before: top 3% of each run | 30/30 (100%) | 156/157 (99%) | 41/59 (69%) | 197/216 (91%) | 197/888 (22%) | 23.0 | 20.0 |
+| After: score of 0.63+ and 4+ packets | 30/30 (100%) | 149/157 (95%) | 36/59 (61%) | 185/216 (86%) | 185/444 (42%) | 8.6 | 7.5 |
 | Rules baseline | 30/30 (100%) | 156/157 (99%) | 42/59 (71%) | 198/216 (92%) | 198/835 (24%) | 21.2 | 18.4 |
 
 By attack type:
 
 | Method | Attack | Whole attacks caught | Windows fully inside | Windows partly inside | Recall |
 | --- | --- | --- | --- | --- | --- |
-| IsolationForest, top 3% | flood | 10/10 (100%) | 54/54 (100%) | 16/20 (80%) | 70/74 (95%) |
-| IsolationForest, top 3% | spoof | 10/10 (100%) | 51/51 (100%) | 17/20 (85%) | 68/71 (96%) |
-| IsolationForest, top 3% | timing | 10/10 (100%) | 51/52 (98%) | 8/19 (42%) | 59/71 (83%) |
+| Before: top 3% of each run | flood | 10/10 (100%) | 54/54 (100%) | 16/20 (80%) | 70/74 (95%) |
+| Before: top 3% of each run | spoof | 10/10 (100%) | 51/51 (100%) | 17/20 (85%) | 68/71 (96%) |
+| Before: top 3% of each run | timing | 10/10 (100%) | 51/52 (98%) | 8/19 (42%) | 59/71 (83%) |
+| After: score of 0.63+ and 4+ packets | flood | 10/10 (100%) | 54/54 (100%) | 13/20 (65%) | 67/74 (91%) |
+| After: score of 0.63+ and 4+ packets | spoof | 10/10 (100%) | 50/51 (98%) | 16/20 (80%) | 66/71 (93%) |
+| After: score of 0.63+ and 4+ packets | timing | 10/10 (100%) | 45/52 (87%) | 7/19 (37%) | 52/71 (73%) |
 | Rules baseline | flood | 10/10 (100%) | 54/54 (100%) | 18/20 (90%) | 72/74 (97%) |
 | Rules baseline | spoof | 10/10 (100%) | 50/51 (98%) | 16/20 (80%) | 66/71 (93%) |
 | Rules baseline | timing | 10/10 (100%) | 52/52 (100%) | 8/19 (42%) | 60/71 (85%) |
+
+## Before and after
+
+- Before: the detector flagged the top 3% most unusual windows of every run, however
+  many attacks the run contained. With a single attack, most of that quota was false alarms.
+- After: the detector flags a window when its anomaly score is at least 0.63 and it
+  has at least 4 packets. The anomaly scores themselves are unchanged.
+- The trade-off is far fewer false alarms for somewhat lower recall.
+- Both settings were chosen on a separate set of runs (seeds 200-229, shown by
+  `python -m src.evaluate --tune 200-229`), never on the runs scored above. The rule was:
+  take the highest score threshold that still caught every attack in those runs, step back
+  by 0.02 as a safety margin, then take the minimum packet count with the best balance of
+  precision and recall that still caught every attack.
 
 ## How to read these tables
 

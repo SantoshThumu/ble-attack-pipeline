@@ -20,6 +20,10 @@ N_TREES = 200        # number of random trees in the forest
 RANDOM_STATE = 42    # fixed so the scores are the same on every run
 MAD_TO_STD = 1.4826  # scales the MAD so it is comparable to a standard deviation
 
+# When to flag a window (both chosen on simulated runs with seeds 200-229, see docs/results.md)
+SCORE_THRESHOLD = 0.63   # flag a window when its anomaly score is at least this
+MIN_PACKETS_TO_FLAG = 4  # never flag a window with fewer packets (too few to judge)
+
 # One sentence per feature, filled in with the window's value and the typical value
 REASONS = {
     "packets_per_sec": "Sent {value:.1f} packets/s vs. a typical {typical:.1f}/s",
@@ -90,16 +94,17 @@ def explain_windows(features: pd.DataFrame) -> list[str]:
     return reasons
 
 
-def build_detections(features: pd.DataFrame, contamination: float) -> pd.DataFrame:
+def build_detections(features: pd.DataFrame, threshold: float, min_packets: int) -> pd.DataFrame:
     """Score, flag and explain every window."""
     detections = features[["address", "window_start", "window_end"]].copy()
 
     # Score every window
     detections["score"] = score_windows(features).round(4)
 
-    # Flag the most unusual windows (contamination = the fraction we expect to be anomalous)
-    threshold = detections["score"].quantile(1 - contamination)
-    detections["flagged"] = (detections["score"] >= threshold).astype(int)
+    # Flag a window when its score is high enough and it has enough packets to judge
+    is_unusual = detections["score"] >= threshold
+    has_enough_packets = features["packets"] >= min_packets
+    detections["flagged"] = (is_unusual & has_enough_packets).astype(int)
 
     # Explain every window, so a different threshold never needs a refit
     detections["reason"] = explain_windows(features)
@@ -128,21 +133,23 @@ def parse_args() -> argparse.Namespace:
     # Define each option: flag name, type, default value, and help
     parser = argparse.ArgumentParser(description="Flag unusual BLE feature windows.")
     parser.add_argument("--db", type=Path, default=Path("data/ble.db"), help="database file")
-    parser.add_argument("--contamination", type=float, default=0.03,
-                        help="fraction of windows to flag by default")
+    parser.add_argument("--threshold", type=float, default=SCORE_THRESHOLD,
+                        help="flag windows with an anomaly score of at least this")
+    parser.add_argument("--min-packets", type=int, default=MIN_PACKETS_TO_FLAG,
+                        help="never flag windows with fewer packets than this")
     parser.add_argument("--flags", type=Path, default=Path("data/flags.csv"), help="output CSV")
 
     # Parse and return them
     return parser.parse_args()
 
 
-def run_detection(db_path: Path, contamination: float,
-                  flags_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+def run_detection(db_path: Path, flags_path: Path, threshold: float = SCORE_THRESHOLD,
+                  min_packets: int = MIN_PACKETS_TO_FLAG) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Score every window, save the results, and return the detections and the flagged rows."""
     # Read the features and build the detections
     conn = sqlite3.connect(db_path)
     features = read_features(conn)
-    detections = build_detections(features, contamination)
+    detections = build_detections(features, threshold, min_packets)
 
     # Write the table and the CSV, then close the database
     write_detections(conn, detections)
@@ -159,7 +166,7 @@ def main() -> None:
         raise SystemExit(f"{args.db} not found (run 'python -m src.features' first)")
 
     # Score the windows, then print a summary and the most unusual windows
-    detections, flags = run_detection(args.db, args.contamination, args.flags)
+    detections, flags = run_detection(args.db, args.flags, args.threshold, args.min_packets)
     print(f"Windows scored: {len(detections)}   flagged: {len(flags)}")
     print(f"Wrote table 'detections' to {args.db} and {args.flags}")
     for flag in flags.head(5).itertuples():

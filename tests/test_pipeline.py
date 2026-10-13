@@ -23,7 +23,6 @@ SMALL_MINUTES = 3
 SMALL_SEED = 7
 
 WINDOW_S = 5
-CONTAMINATION = 0.03
 
 
 def simulate_small(folder: Path) -> tuple[pd.DataFrame, list[dict]]:
@@ -40,7 +39,7 @@ def run_pipeline(folder: Path, n_devices: int, minutes: float, attacks: list[str
     run_simulation(n_devices, minutes, attacks, seed, folder)
     run_ingest(folder / "packets.csv", db_path)
     run_features(db_path, WINDOW_S)
-    run_detection(db_path, CONTAMINATION, folder / "flags.csv")
+    run_detection(db_path, folder / "flags.csv")
     return db_path
 
 
@@ -93,8 +92,8 @@ def test_detector_needs_only_the_features_table(tmp_path):
     write_features(conn, features)
     conn.close()
 
-    full, flags = run_detection(tmp_path / "ble.db", CONTAMINATION, tmp_path / "flags.csv")
-    alone, flags = run_detection(tmp_path / "features_only.db", CONTAMINATION, tmp_path / "flags.csv")
+    full, flags = run_detection(tmp_path / "ble.db", tmp_path / "flags.csv")
+    alone, flags = run_detection(tmp_path / "features_only.db", tmp_path / "flags.csv")
     assert alone.equals(full)
 
 

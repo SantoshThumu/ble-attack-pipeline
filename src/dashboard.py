@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.detect import run_detection
+from src.detect import MIN_PACKETS_TO_FLAG, SCORE_THRESHOLD, run_detection
 from src.features import MIN_PACKETS, run_features
 from src.ingest import run_ingest
 from src.simulate import run_simulation
@@ -33,7 +33,6 @@ DEMO_SEED = 42
 DEMO_DEVICES = 8
 DEMO_MINUTES = 10
 DEMO_WINDOW_S = 5
-DEMO_FLAG_FRACTION = 0.03
 
 # Plain-English names for the attacks that can be injected
 ATTACKS = {
@@ -113,7 +112,7 @@ def rebuild_data(seed: int, attacks: list[str]) -> tuple[list[dict], float]:
     packets, injected, n_sent = run_simulation(DEMO_DEVICES, DEMO_MINUTES, attacks, seed, DATA_DIR)
     run_ingest(DATA_DIR / "packets.csv", DB_PATH)
     run_features(DB_PATH, DEMO_WINDOW_S)
-    run_detection(DB_PATH, DEMO_FLAG_FRACTION, DATA_DIR / "flags.csv")
+    run_detection(DB_PATH, DATA_DIR / "flags.csv")
     return injected, time.perf_counter() - started
 
 
@@ -123,8 +122,6 @@ def show_demo_controls() -> None:
     kind = st.sidebar.selectbox("Attack to inject", list(ATTACKS), format_func=ATTACKS.get)
     inject = st.sidebar.button("Inject attack", type="primary")
     reset = st.sidebar.button("Reset to demo data")
-    st.sidebar.caption("Tip: with a single injected attack, lower Sensitivity to about 1% "
-                       "to see fewer false alarms.")
 
     if inject:
         # Use the next seed each time, so every injection is new but repeatable
@@ -212,8 +209,8 @@ def show_flags(windows: pd.DataFrame, show_key: bool) -> None:
     score_help = "Higher means this window was easier to single out from normal traffic."
     score_column = st.column_config.NumberColumn(format="%.3f", help=score_help)
     st.dataframe(table, hide_index=True, column_config={"Unusualness (0-1)": score_column})
-    st.caption(f"Windows with fewer than {MIN_PACKETS} packets are skipped. "
-               "Windows with only a few packets are less reliable.")
+    st.caption("Windows with only a few packets are less reliable, so the Sensitivity section "
+               "below can ignore them.")
 
 
 def main() -> None:
@@ -239,14 +236,15 @@ def main() -> None:
     chart_area = st.container()
     flags_area = st.container()
 
-    # Sensitivity: flag the windows whose score is in the top X%
+    # Sensitivity: flag a window when it is unusual enough and has enough packets to judge
     st.subheader("Sensitivity")
-    percent = st.slider("Flag the top X% most unusual windows", min_value=1.0, max_value=10.0,
-                        value=3.0, step=0.5, format="%g%%")
-    threshold = windows["score"].quantile(1 - percent / 100)
-    windows["flagged"] = windows["score"] >= threshold
-    st.caption(f"Flagging the top {percent:g}%: {windows['flagged'].sum()} of {len(windows)} windows. "
-               "A higher setting catches more attacks but also raises more false alarms.")
+    threshold = st.slider("Flag a window when its unusualness is at least", min_value=0.50,
+                          max_value=0.80, value=SCORE_THRESHOLD, step=0.01)
+    min_packets = st.slider("Ignore windows with fewer than this many packets",
+                            min_value=MIN_PACKETS, max_value=10, value=MIN_PACKETS_TO_FLAG)
+    windows["flagged"] = (windows["score"] >= threshold) & (windows["packets"] >= min_packets)
+    st.caption(f"Flagging {windows['flagged'].sum()} of {len(windows)} windows. Lower the first "
+               "slider to catch more attacks, at the cost of more false alarms.")
 
     # Evaluation only: compare the flags with the simulator's answer key (off by default)
     st.divider()
