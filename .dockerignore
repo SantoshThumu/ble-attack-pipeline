@@ -1,0 +1,7 @@
+# Not needed inside the image, so do not send them to Docker
+.venv
+data
+.git
+**/__pycache__
+docs
+tests

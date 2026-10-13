@@ -1,0 +1,6 @@
+# One service: the dashboard, built from the Dockerfile in this folder
+services:
+  dashboard:
+    build: .
+    ports:
+      - "8501:8501"
